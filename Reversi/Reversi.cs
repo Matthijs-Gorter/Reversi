@@ -16,6 +16,7 @@ internal class Reversi : Form
     /// </summary>
     private bool?[,] grid = new bool?[gridGrootte, gridGrootte];
     private bool roodAanDeBeurt = true; // true = rood, false = blauw
+    private PictureBox box;
     private void klikOpGrid(int x, int y)
     {
         Debug.WriteLine($"{x}, {y}");
@@ -95,6 +96,7 @@ internal class Reversi : Form
             }
         }
         Debug.WriteLine("\n ---------");
+        box.Invalidate();
     }
 
     public Reversi()
@@ -147,7 +149,7 @@ internal class Reversi : Form
         g.Dispose();
         pen.Dispose();
 
-        PictureBox box = new PictureBox();
+        box = new PictureBox();
         box.Image = plaatje;
         box.Size = new Size(plaatjeGrootte, plaatjeGrootte);
         box.Location = new Point(margin, hoogte - plaatjeGrootte - margin);
@@ -157,7 +159,24 @@ internal class Reversi : Form
             int y = e.Y / (plaatjeGrootte / gridGrootte);
             klikOpGrid(x, y);
         };
+        box.Paint += (sender, e) =>
+        {
+            int vak = plaatjeGrootte / gridGrootte;
+            for (int x = 0; x < gridGrootte; x++)
+            {
+                for (int y = 0; y < gridGrootte; y++)
+                {
+                    if (grid[x, y] != null)
+                    {
+                        Brush kwast = grid[x, y] == true ? Brushes.Red : Brushes.Blue;
+                        e.Graphics.FillEllipse(kwast, x * vak + 5, y * vak + 5, vak - 10, vak - 10);
+                    }
+                }
+            }
+        };
         this.Controls.Add(box);
+
+
 
     }
 }
