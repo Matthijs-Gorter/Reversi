@@ -10,57 +10,83 @@ internal class Reversi : Form
     private const int margin = 50;
     private const int breedte = plaatjeGrootte + 2 * margin;
     private const int hoogte = 800;
-    
+
     /// <summary>
     /// null = leeg, true = rood, false = blauw
     /// </summary>
     private bool?[,] grid = new bool?[gridGrootte, gridGrootte];
     private bool roodAanDeBeurt = true; // true = rood, false = blauw
     private PictureBox box;
+
     private void klikOpGrid(int x, int y)
     {
         Debug.WriteLine($"{x}, {y}");
+
         if (grid[x, y] != null)
         {
             MessageBox.Show("Dit vakje is al bezet", "Oeps!", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
-        if (!stapIsCorrect(x, y))
-        {
-            MessageBox.Show("Deze zet is niet correct", "Oeps!", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
+
+
         nieuweZet(x, y);
         renderBallen();
     }
+
     private void nieuweZet(int x, int y)
     {
-        grid[x,y] = roodAanDeBeurt;
+        // zet de bal op het grid in de goede kleur
+        grid[x, y] = roodAanDeBeurt;
+
+        if (!stapIsCorrect(x, y))
+        {
+            MessageBox.Show("Deze zet is niet correct", "Oeps!", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            grid[x, y] = null;
+            return;
+        }
+
+        // loop door alle richtingen
         for (int dx = -1; dx <= 1; dx++)
         {
             for (int dy = -1; dy <= 1; dy++)
             {
                 if (!(dx == 0 && dy == 0))
                 {
+                    // kijk of er stenen worden ingesloten en draai ze om
                     ikWordtIngesloten(x, y, dx, dy);
                 }
             }
         }
-        roodAanDeBeurt = !roodAanDeBeurt;
 
+        roodAanDeBeurt = !roodAanDeBeurt;
     }
+
     private bool stapIsCorrect(int x, int y)
     {
-        return true;
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                if (!(dx == 0 && dy == 0))
+                {
+                    if (ikWordtIngesloten(x, y, dx, dy))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private bool ikWordtIngesloten(int x, int y, int dx, int dy)
     {
         int nx = x + dx;
         int ny = y + dy;
+
         if (nx < 0 || nx >= gridGrootte || ny < 0 || ny >= gridGrootte)
         {
-            return false; 
+            return false;
         }
         else if (grid[nx, ny] == null)
         {
@@ -81,22 +107,36 @@ internal class Reversi : Form
         }
     }
 
-    
-
     private void renderBallen()
     {
         Debug.Write("\t Grid: \n ---------");
+
         for (int y = 0; y < gridGrootte; y++)
         {
             Debug.WriteLine("");
+
             for (int x = 0; x < gridGrootte; x++)
             {
-                
                 Debug.Write(grid[x, y] == null ? ' ' : grid[x, y] == true ? 'R' : 'B');
             }
         }
+
         Debug.WriteLine("\n ---------");
         box.Invalidate();
+    }
+
+    private void nieuwSpel()
+    {
+        grid = new bool?[gridGrootte, gridGrootte];
+
+        // rood en blauw in het midden van het grid zetten
+        grid[gridGrootte / 2 - 1, gridGrootte / 2 - 1] = true;
+        grid[gridGrootte / 2 - 1, gridGrootte / 2] = false;
+        grid[gridGrootte / 2, gridGrootte / 2 - 1] = false;
+        grid[gridGrootte / 2, gridGrootte / 2] = true;
+
+        roodAanDeBeurt = true;
+        renderBallen();
     }
 
     public Reversi()
@@ -104,10 +144,11 @@ internal class Reversi : Form
         this.Text = "Reversi";
         this.BackColor = Color.White;
         this.ClientSize = new Size(breedte, hoogte);
+
         Debug.WriteLine($"Het grid: {grid}");
+
         Bitmap plaatje = new Bitmap(plaatjeGrootte, plaatjeGrootte);
         Graphics g = Graphics.FromImage(plaatje);
-
         Pen pen = new Pen(Color.Black, 2);
 
         // rood en blauw in het midden van het grid zetten
@@ -116,17 +157,15 @@ internal class Reversi : Form
         grid[gridGrootte / 2, gridGrootte / 2 - 1] = false;
         grid[gridGrootte / 2, gridGrootte / 2] = true;
 
-
-
-        Button nieuwSpel = new Button();
-        nieuwSpel.Text = "Nieuw Spel";
-        nieuwSpel.Size = new Size(100, 50);
-        nieuwSpel.Location = new Point(50, 50);
-        nieuwSpel.Click += (sender, e) =>
+        Button nieuwSpelKnop = new Button();
+        nieuwSpelKnop.Text = "Nieuw Spel";
+        nieuwSpelKnop.Size = new Size(100, 50);
+        nieuwSpelKnop.Location = new Point(50, 50);
+        nieuwSpelKnop.Click += (sender, e) =>
         {
-            MessageBox.Show("Nieuw Spel gestart!");
+            nieuwSpel();
         };
-        this.Controls.Add(nieuwSpel);
+        this.Controls.Add(nieuwSpelKnop);
 
         Button help = new Button();
         help.Text = "Help";
@@ -138,12 +177,13 @@ internal class Reversi : Form
         };
         this.Controls.Add(help);
 
-
         for (int i = 0; i <= gridGrootte; i++)
         {
-            g.DrawLine(pen, i * (plaatjeGrootte / gridGrootte), 0, i * (plaatjeGrootte / gridGrootte), plaatjeGrootte);
-            g.DrawLine(pen, 0, i * (plaatjeGrootte / gridGrootte), plaatjeGrootte, i * (plaatjeGrootte / gridGrootte));
+            g.DrawLine(pen, i * (plaatjeGrootte / gridGrootte), 0,
+                i * (plaatjeGrootte / gridGrootte), plaatjeGrootte);
 
+            g.DrawLine(pen, 0, i * (plaatjeGrootte / gridGrootte),
+                plaatjeGrootte, i * (plaatjeGrootte / gridGrootte));
         }
 
         g.Dispose();
@@ -153,15 +193,19 @@ internal class Reversi : Form
         box.Image = plaatje;
         box.Size = new Size(plaatjeGrootte, plaatjeGrootte);
         box.Location = new Point(margin, hoogte - plaatjeGrootte - margin);
+
         box.MouseClick += (sender, e) =>
         {
             int x = e.X / (plaatjeGrootte / gridGrootte);
             int y = e.Y / (plaatjeGrootte / gridGrootte);
+
             klikOpGrid(x, y);
         };
+
         box.Paint += (sender, e) =>
         {
             int vak = plaatjeGrootte / gridGrootte;
+
             for (int x = 0; x < gridGrootte; x++)
             {
                 for (int y = 0; y < gridGrootte; y++)
@@ -174,9 +218,7 @@ internal class Reversi : Form
                 }
             }
         };
+
         this.Controls.Add(box);
-
-
-
     }
 }
