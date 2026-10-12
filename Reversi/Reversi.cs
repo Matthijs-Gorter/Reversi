@@ -124,7 +124,20 @@ internal class Reversi : Form
         nieuwSpel.Location = new Point(50, 50);
         nieuwSpel.Click += (sender, e) =>
         {
-            MessageBox.Show("Nieuw Spel gestart!");
+            for (int x = 0; x < gridGrootte; x++)
+            {
+                for (int y = 0; y < gridGrootte; y++)
+                {
+                    grid[x, y] = null;
+                }
+            }
+            grid[gridGrootte / 2 - 1, gridGrootte / 2 - 1] = true;
+            grid[gridGrootte / 2 - 1, gridGrootte / 2] = false;
+            grid[gridGrootte / 2, gridGrootte / 2 - 1] = false;
+            grid[gridGrootte / 2, gridGrootte / 2] = true;
+            roodAanDeBeurt = true;
+            box.Invalidate();
+
         };
         this.Controls.Add(nieuwSpel);
 
