@@ -5,11 +5,12 @@ using System.Windows.Forms;
 
 internal class Reversi : Form
 {
-    const int gridGrootte = 6;
-    const int plaatjeGrootte = gridGrootte * 80; // zodat elk vakje 80x80 pixels is
+    int gridGrootte = 6;
+    const int plaatjeGrootte = 600; // 600 want is deelbaar door 4,6,8,10, 12 en 20
     const int margin = 50;
     const int breedte = plaatjeGrootte + 2 * margin;
     const int hoogte = 800;
+
 
     // mogelijke statussen van een vakje
     enum VakStatus
@@ -20,7 +21,7 @@ internal class Reversi : Form
         legaleZet
     }
 
-    VakStatus[,] grid = new VakStatus[gridGrootte, gridGrootte];
+    VakStatus[,] grid;
 
 
     // maakt een knop met sjabloon
@@ -42,13 +43,14 @@ internal class Reversi : Form
     {
         label.Text = tekst;
         label.Font = font;
-        label.ForeColor = kleur;
-        label.Size = new Size(120, 40);
+        label.ForeColor = Color.White;
+        label.BackColor = kleur;
+        label.Size = new Size(120, 30);
         label.Location = locatie;
         label.TextAlign = ContentAlignment.MiddleCenter;
-        label.BorderStyle = BorderStyle.FixedSingle;
         return label;
     }
+
     // speler die aan de beurt is, labels worden meteen aangepast bij wisselen
     VakStatus _speler = VakStatus.rood;
     VakStatus speler
@@ -62,18 +64,35 @@ internal class Reversi : Form
     }
 
 
-    // labels:
+
+
     Font dikFont = new Font("Arial", 16, FontStyle.Bold);
-    Font normaalFont = new Font("Arial", 14);
+    Font normaalFont = new Font("Arial", 11);
     Label roodLabel = new Label();
     Label blauwLabel = new Label();
     // score teller
-    Label roodTellerLabel = new Label(); 
+    Label roodTellerLabel = new Label();
     Label blauwTellerLabel = new Label();
+
+    // grid grootte instellen
+    int[] gridGroottes = { 4, 6, 8, 10, 12, 20 };
+    Label grootteLabel = new Label();
+    Button minGridSize;
+    Button plusGridSize;
 
     PictureBox box;
 
-    // wordt aangeroepen als er op een vakje van het grid geklikt wordt
+    void wijzigGridGrootte(int stap)
+    {
+        int i = Array.IndexOf(gridGroottes, gridGrootte);
+        if (i + stap >= 0 && i + stap < gridGroottes.Length)
+        {
+            gridGrootte = gridGroottes[i + stap];
+            grootteLabel.Text = $"Grid grootte: {gridGrootte}";
+        }
+        nieuwSpel();
+    }
+
     void klikOpGrid(int x, int y)
     {
         Debug.WriteLine($"{x}, {y}");
@@ -90,7 +109,6 @@ internal class Reversi : Form
         renderBallen();
     }
 
-    // doet een zet: controleert of hij mag, draait stenen om en wisselt van speler
     void nieuweZet(int x, int y)
     {
         // zet de bal op het grid in de goede kleur
@@ -162,6 +180,7 @@ internal class Reversi : Form
 
     }
 
+    // recursive functie 
     // kijkt in een richting (dx, dy) of er stenen van de tegenstander worden ingesloten
     // door een eigen steen. Bij omdraaien = true worden die stenen ook omgedraaid.
     bool kanInSluiten(int x, int y, int dx, int dy, int aantalInGeslotenVakjes = 0, bool omdraaien = false)
@@ -199,7 +218,7 @@ internal class Reversi : Form
         }
     }
 
-    // print het grid in de debug-output, berekent de legale zetten en tekent opnieuw
+    // berekent de legale zetten en tekent opnieuw
     void renderBallen()
     {
         //Debug.Write("\t Grid: \n ---------");
@@ -215,14 +234,32 @@ internal class Reversi : Form
         //}
 
         //Debug.WriteLine("\n ---------");
+
+
+
+
+        // berekent de legale zetten voor de huidige speler
         if (!berekenLegaleZetten())
         {
-            eindigSpel();
+            box.Invalidate(); // render de nieuwe zet voordat de textbox in beeld komt
+
+            // geen legale zetten voor huidige speler kijken of de andere speler wel zetten heeft.
+            speler = (speler == VakStatus.rood ? VakStatus.blauw : VakStatus.rood);
+            if (berekenLegaleZetten())
+            {
+                // andere speler kan wel dus beurt naar andere speler
+                MessageBox.Show($"Geen legale zet voor {(speler == VakStatus.rood ? VakStatus.blauw : VakStatus.rood)} de beurt gaat naar de andere speler.", "Geen legale zet", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            else
+            {
+                // beide spelers kunnen niet eindig spel
+                eindigSpel();
+            }
         }
         box.Invalidate();
     }
 
-    // markeert alle vakjes waar de huidige speler mag zetten en returnt true als er minstens één legale zet is
+    // zet de alle legalevakjes in de grid en returnt true als er minstens één legale zet is
     bool berekenLegaleZetten()
     {
         bool legaleZet = false;
@@ -236,10 +273,10 @@ internal class Reversi : Form
                 {
                     if (stapIsCorrect(x, y))
                     {
-                        // markeer als legale zet wanneer stap correct is
                         grid[x, y] = VakStatus.legaleZet;
                         legaleZet = true;
-                    } else
+                    }
+                    else
                     {
                         // haal de markering weg als het geen legale zet is
                         grid[x, y] = VakStatus.leeg;
@@ -267,6 +304,8 @@ internal class Reversi : Form
         return teller;
     }
 
+
+
     // eindigt spel en toont een bericht met de winnaar
     void eindigSpel()
     {
@@ -286,7 +325,7 @@ internal class Reversi : Form
         {
             winnaar = "Gelijkspel!";
         }
-        MessageBox.Show($"Einde van het spel!\nRood: {rood}\nBlauw: {blauw}\n{winnaar}", "Einde van het spel", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        MessageBox.Show($"Einde van het spel!\nRood: {rood}\nBlauw: {blauw}\n{winnaar}", "Einde van het spel", MessageBoxButtons.OK);
     }
 
     // begin een nieuw spel met een leeg grid en de beginstenen
@@ -311,23 +350,18 @@ internal class Reversi : Form
         this.BackColor = Color.White;
         this.ClientSize = new Size(breedte, hoogte);
 
-        Debug.WriteLine($"Het grid: {grid}");
-
-        // plaatje met de lijnen van het grid
-        Bitmap plaatje = new Bitmap(plaatjeGrootte, plaatjeGrootte);
-        Graphics g = Graphics.FromImage(plaatje);
-        Pen pen = new Pen(Color.Black, 2);
-
+        const int midden = margin + plaatjeGrootte / 2;
+        const int knopY = plaatjeGrootte + 100 + 28;
 
         // knoppen maken
-        Button nieuwSpelKnop = maakKnop("Nieuw Spel", new Point(50, 600), Color.SeaGreen);
+        Button nieuwSpelKnop = maakKnop("Nieuw Spel", new Point(50, knopY), Color.SeaGreen);
         nieuwSpelKnop.Click += (sender, e) =>
         {
             nieuwSpel();
         };
         this.Controls.Add(nieuwSpelKnop);
 
-        Button help = maakKnop("Spelregels", new Point(410, 600), Color.Purple);
+        Button help = maakKnop("Spelregels", new Point(margin + plaatjeGrootte - 120, knopY), Color.Purple);
         help.Click += (sender, e) =>
         {
             if (MessageBox.Show("Wil je de volledige spelregels openen in je browser?", "Spelregels", MessageBoxButtons.YesNo, MessageBoxIcon.Information) == DialogResult.Yes)
@@ -341,37 +375,47 @@ internal class Reversi : Form
         maakLabel(roodLabel, "Rood", new Point(50, 20), Color.Red, dikFont);
         this.Controls.Add(roodLabel);
 
-        maakLabel(blauwLabel, "Blauw", new Point(410, 20), Color.Blue, normaalFont);
+        maakLabel(blauwLabel, "Blauw", new Point(margin + plaatjeGrootte - 120, 20), Color.Blue, normaalFont);
         this.Controls.Add(blauwLabel);
 
-        maakLabel(roodTellerLabel, "0", new Point(50, 60), Color.Red, dikFont);
+        maakLabel(roodTellerLabel, "0", new Point(50, 50), Color.Red, dikFont);
         this.Controls.Add(roodTellerLabel);
-        
-        maakLabel(blauwTellerLabel, "0", new Point(410, 60), Color.Blue, dikFont);
+
+        maakLabel(blauwTellerLabel, "0", new Point(margin + plaatjeGrootte - 120, 50), Color.Blue, dikFont);
         this.Controls.Add(blauwTellerLabel);
 
-        // horizontale en verticale lijnen tekenen
-        for (int i = 0; i <= gridGrootte; i++)
-        {
-            g.DrawLine(pen, i * (plaatjeGrootte / gridGrootte), 0,
-                i * (plaatjeGrootte / gridGrootte), plaatjeGrootte);
+        // De gridgrootte instellen
 
-            g.DrawLine(pen, 0, i * (plaatjeGrootte / gridGrootte),
-                plaatjeGrootte, i * (plaatjeGrootte / gridGrootte));
-        }
+        minGridSize = maakKnop("-", new Point(midden - 90, knopY), Color.Black);
+        minGridSize.Size = new Size(30, 30);
+        minGridSize.Click += (sender, e) => wijzigGridGrootte(-1);
+        this.Controls.Add(minGridSize);
 
-        g.Dispose();
-        pen.Dispose();
+        grootteLabel.Font = new Font("Arial", 11, FontStyle.Bold);
+        grootteLabel.ForeColor = Color.Black;
+        grootteLabel.TextAlign = ContentAlignment.MiddleCenter;
+        grootteLabel.Text = $"Grid grootte: {gridGrootte}";
+        grootteLabel.Size = new Size(120, 30);
+        grootteLabel.Location = new Point(midden - 60, knopY);
+        this.Controls.Add(grootteLabel);
+
+        plusGridSize = maakKnop("+", new Point(midden + 60, knopY), Color.Black);
+        plusGridSize.Size = new Size(30, 30);
+        plusGridSize.Click += (sender, e) => wijzigGridGrootte(1);
+        this.Controls.Add(plusGridSize);
+
+        Bitmap plaatje = new Bitmap(plaatjeGrootte, plaatjeGrootte);
+        Pen pen = new Pen(Color.Black, 2);
 
         box = new PictureBox();
         box.Image = plaatje;
-        box.Size = new Size(plaatjeGrootte, plaatjeGrootte);
+        box.Size = new Size(plaatjeGrootte + 1, plaatjeGrootte + 1); 
         box.Location = new Point(margin, 100);
 
         // muispositie omrekenen naar vakje in het grid
         box.MouseClick += (sender, e) =>
         {
-            // c# rond automisch af naar beneden bij integer deling
+            // c# rond automisch af naar beneden wanneer je een int deelt
             int x = e.X / (plaatjeGrootte / gridGrootte);
             int y = e.Y / (plaatjeGrootte / gridGrootte);
 
@@ -382,33 +426,41 @@ internal class Reversi : Form
         box.Paint += (sender, e) =>
         {
             int vak = plaatjeGrootte / gridGrootte;
-
+            for (int i = 0; i <= gridGrootte; i++)
+            {
+                e.Graphics.DrawLine(pen, i * (plaatjeGrootte / gridGrootte), 0, i * (plaatjeGrootte / gridGrootte), plaatjeGrootte);
+                e.Graphics.DrawLine(pen, 0, i * (plaatjeGrootte / gridGrootte), plaatjeGrootte, i * (plaatjeGrootte / gridGrootte));
+            }
+           
             for (int x = 0; x < gridGrootte; x++)
             {
+                
+
                 for (int y = 0; y < gridGrootte; y++)
                 {
-
-
-                Brush kwast;
-                switch (grid[x, y])
-                {
-                    case VakStatus.rood:
-                        kwast = Brushes.Red;
-                        break;
-                    case VakStatus.blauw:
-                        kwast = Brushes.Blue;
-                        break;
-                    case VakStatus.legaleZet:
-                        kwast = (speler == VakStatus.rood ? Brushes.LightCoral : Brushes.LightBlue);
-                        break;
-                    default: // bij een leeg vakje, geen kwast gebruiken
-                        continue;
-                }
-                e.Graphics.FillEllipse(kwast, x * vak + 5, y * vak + 5, vak - 10, vak - 10);
+                    Brush kwast;
+                    // gebruik switch ipv ifs vanwege leesbaarheid
+                    switch (grid[x, y])
+                    {
+                        case VakStatus.rood:
+                            kwast = Brushes.Red;
+                            break;
+                        case VakStatus.blauw:
+                            kwast = Brushes.Blue;
+                            break;
+                        case VakStatus.legaleZet:
+                            kwast = (speler == VakStatus.rood ? Brushes.LightSalmon : Brushes.LightBlue);
+                            break;
+                        default: // bij een leeg vakje 
+                            continue; // skipt het tekenen van een bal
+                    }
+                    e.Graphics.FillEllipse(kwast, x * vak + 5, y * vak + 5, vak - 10, vak - 10);
 
                 }
             }
         };
+
+
 
         this.Controls.Add(box);
         nieuwSpel();
