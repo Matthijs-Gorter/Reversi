@@ -10,6 +10,7 @@ internal class Reversi : Form
     const int margin = 50;
     const int breedte = plaatjeGrootte + 2 * margin;
     const int hoogte = 800;
+    bool hints = false;
 
 
     // mogelijke statussen van een vakje
@@ -273,7 +274,12 @@ internal class Reversi : Form
                 {
                     if (stapIsCorrect(x, y))
                     {
-                        grid[x, y] = VakStatus.legaleZet;
+                        if (hints) { 
+                            grid[x, y] = VakStatus.legaleZet;
+                        } else
+                        {
+                            grid[x, y] = VakStatus.leeg;
+                        }
                         legaleZet = true;
                     }
                     else
@@ -360,6 +366,25 @@ internal class Reversi : Form
             nieuwSpel();
         };
         this.Controls.Add(nieuwSpelKnop);
+
+        Button hintsKnop = maakKnop("Hints", new Point(plaatjeGrootte / 2 + margin - 60, 30), Color.Black);
+        hintsKnop.Click += (sender, e) =>
+        {
+            hints = !hints;
+            if (hints)
+            {
+                hintsKnop.BackColor = Color.White;
+                hintsKnop.ForeColor = Color.Black;
+            } else
+            {
+                hintsKnop.BackColor = Color.Black;
+                hintsKnop.ForeColor = Color.White;
+            }
+            //berekenLegaleZetten();
+            renderBallen();
+        };
+        this.Controls.Add(hintsKnop);
+        
 
         Button help = maakKnop("Spelregels", new Point(margin + plaatjeGrootte - 120, knopY), Color.Purple);
         help.Click += (sender, e) =>
